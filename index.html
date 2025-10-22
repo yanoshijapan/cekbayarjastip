@@ -295,17 +295,17 @@
 
         .data-card.dp {
             background: #FFF9C4;
-            border-color: #FBC02D;
+            border-color: #FFEB3B;
         }
 
         .data-card.invoice {
-            background: #E3F2FD;
-            border-color: #4A90E2;
+            background: #E1F5FE;
+            border-color: #4FC3F7;
         }
 
         .data-card.bayar {
             background: #E8F5E9;
-            border-color: #2D5016;
+            border-color: #81C784;
         }
 
         .card-header {
@@ -517,18 +517,18 @@
         }
 
         .status-dp {
-            background: #FBC02D;
+            background: #FFEB3B;
             color: #000;
         }
 
         .status-invoice {
-            background: #4A90E2;
-            color: white;
+            background: #4FC3F7;
+            color: #000;
         }
 
         .status-bayar {
-            background: #2D5016;
-            color: white;
+            background: #81C784;
+            color: #000;
         }
 
         .highlight {
@@ -795,15 +795,18 @@
 
             if (currentFilter !== 'all') {
                 filteredData = filteredData.filter(item => {
-                    const bgColor = item.backgroundColor.toLowerCase();
+                    const bgColor = (item.backgroundColor || '#ffffff').toLowerCase();
                     if (currentFilter === 'dp') {
-                        return bgColor === '#fbc02d' || bgColor === '#ffeb3b';
+                        return bgColor.includes('ffffe0') || bgColor.includes('fffde7') || bgColor.includes('fff9c4');
                     } else if (currentFilter === 'invoice') {
-                        return bgColor === '#4a90e2';
+                        return bgColor.includes('b3ebf2') || bgColor.includes('e1f5fe') || bgColor.includes('b2ebf2');
                     } else if (currentFilter === 'bayar') {
-                        return bgColor === '#2d5016';
+                        return bgColor.includes('caffbf') || bgColor.includes('c8e6c9') || bgColor.includes('e8f5e9');
                     } else if (currentFilter === 'belum') {
-                        return bgColor !== '#4a90e2' && bgColor !== '#2d5016' && bgColor !== '#fbc02d' && bgColor !== '#ffeb3b';
+                        // Belum bayar = tidak ada warna status
+                        return !bgColor.includes('ffffe0') && !bgColor.includes('fffde7') && 
+                               !bgColor.includes('b3ebf2') && !bgColor.includes('e1f5fe') && 
+                               !bgColor.includes('caffbf') && !bgColor.includes('c8e6c9');
                     }
                     return true;
                 });
@@ -897,15 +900,23 @@
                 
                 const bgColor = (item.backgroundColor || '#ffffff').toLowerCase();
                 
-                if (bgColor.includes('fbc02d') || bgColor.includes('ffeb3b') || bgColor.includes('f9a825')) {
+                // Debug: log warna untuk memastikan deteksi
+                console.log(`Nama: ${item.nama}, Background Color: ${bgColor}`);
+                
+                // Deteksi warna DP (kuning): #FFFFE0 atau #fffde7 atau ffffe0
+                if (bgColor.includes('ffffe0') || bgColor.includes('fffde7') || bgColor.includes('fff9c4')) {
                     statusClass = 'dp';
                     statusBadge = '<span class="status-badge status-dp">Sudah DP</span>';
                     showCancelButton = true;
-                } else if (bgColor.includes('4a90e2') || bgColor.includes('357abd')) {
+                } 
+                // Deteksi warna Invoice (biru): #B3EBF2 atau #b3ebf2
+                else if (bgColor.includes('b3ebf2') || bgColor.includes('e1f5fe') || bgColor.includes('b2ebf2')) {
                     statusClass = 'invoice';
                     statusBadge = '<span class="status-badge status-invoice">Sudah Invoice</span>';
                     showCancelButton = true;
-                } else if (bgColor.includes('2d5016') || bgColor.includes('4caf50')) {
+                } 
+                // Deteksi warna Bayar (hijau): #CAFFBF atau #caffbf atau c8e6c9
+                else if (bgColor.includes('caffbf') || bgColor.includes('c8e6c9') || bgColor.includes('e8f5e9')) {
                     statusClass = 'bayar';
                     statusBadge = '<span class="status-badge status-bayar">Sudah Bayar</span>';
                     showCancelButton = true;
@@ -1133,7 +1144,11 @@
             }
 
             const buttons = document.querySelectorAll('.btn');
-            buttons.forEach(btn => btn.disabled = true);
+            const originalButtonStates = [];
+            buttons.forEach(btn => {
+                originalButtonStates.push(btn.disabled);
+                btn.disabled = true;
+            });
 
             try {
                 const response = await fetch(GAS_URL, {
@@ -1160,12 +1175,31 @@
                     throw new Error(result.error);
                 }
 
+                // Reload data untuk refresh warna
                 await loadData(sheetName);
+                
+                // Scroll ke posisi card yang di-update
+                setTimeout(() => {
+                    const cardId = `card_${nama.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    const card = document.getElementById(cardId);
+                    if (card) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Highlight effect
+                        card.style.transition = 'transform 0.3s';
+                        card.style.transform = 'scale(1.02)';
+                        setTimeout(() => {
+                            card.style.transform = 'scale(1)';
+                        }, 300);
+                    }
+                }, 500);
+                
                 alert('Status berhasil dibatalkan!');
             } catch (error) {
                 console.error('Cancel error:', error);
                 alert('Error: ' + error.message);
-                buttons.forEach(btn => btn.disabled = false);
+                buttons.forEach((btn, index) => {
+                    btn.disabled = originalButtonStates[index];
+                });
             }
         }
 
