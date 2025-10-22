@@ -712,7 +712,7 @@
                 const displayListBarang = highlightText(item.listBarang, searchQuery);
 
                 const cancelButton = showCancelButton ? 
-                    `<button class="btn btn-cancel" onclick="cancelStatus('${item.nama.replace(/'/g, "\\'")}', ${index})">
+                    `<button class="btn btn-cancel" onclick="cancelStatus('${item.nama.replace(/'/g, "\\'")}')">
                         ❌ Batalkan
                     </button>` : '';
 
@@ -730,10 +730,10 @@
                         ${displayListBarang || '-'}
                     </div>
                     <div class="card-actions">
-                        <button class="btn btn-invoice" onclick="updateStatus('${item.nama.replace(/'/g, "\\'")}', 'invoice', ${index})">
+                        <button class="btn btn-invoice" onclick="updateStatus('${item.nama.replace(/'/g, "\\'")}', 'invoice')">
                             ✅ Sudah Invoice
                         </button>
-                        <button class="btn btn-bayar" onclick="updateStatus('${item.nama.replace(/'/g, "\\'")}', 'bayar', ${index})">
+                        <button class="btn btn-bayar" onclick="updateStatus('${item.nama.replace(/'/g, "\\'")}', 'bayar')">
                             💰 Sudah Bayar
                         </button>
                         ${cancelButton}
@@ -770,7 +770,7 @@
             applyFilters();
         }
 
-        async function updateStatus(nama, status, index) {
+        async function updateStatus(nama, status) {
             const sheetName = document.getElementById('sheetSelect').value;
             
             if (!confirm(`Apakah Anda yakin ingin menandai "${nama}" sebagai ${status === 'invoice' ? 'sudah invoice' : 'sudah bayar'}?`)) {
@@ -814,7 +814,7 @@
             }
         }
 
-        async function cancelStatus(nama, index) {
+        async function cancelStatus(nama) {
             const sheetName = document.getElementById('sheetSelect').value;
             
             if (!confirm(`Apakah Anda yakin ingin membatalkan status "${nama}"?`)) {
