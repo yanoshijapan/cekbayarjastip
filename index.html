@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Pembayaran Jastip</title>
+    <title>Cek Pembayaran Jastip</title>
     <style>
         * {
             margin: 0;
@@ -328,7 +328,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Dashboard Pembayaran Jastip</h1>
+        <h1>Dashboard Cek Pembayaran Jastip</h1>
         
         <div class="controls">
             <label for="sheetSelect">Pilih Sheet:</label>
@@ -409,13 +409,16 @@
                 }
 
                 allData = result.data;
-                currentData = result.data;
+                currentData = [];
                 
                 // Tampilkan search box
                 document.getElementById('searchBox').style.display = 'block';
                 document.getElementById('searchInput').value = '';
+                document.getElementById('searchInput').focus();
                 
-                displayData(result.data);
+                // Tampilkan pesan untuk memulai pencarian
+                document.getElementById('content').innerHTML = '<div class="empty">🔍 Ketik nama atau nomor HP untuk mencari data...</div>';
+                document.getElementById('resultInfo').style.display = 'none';
             } catch (error) {
                 document.getElementById('content').innerHTML = `<div class="error">Error: ${error.message}</div>`;
             }
@@ -423,23 +426,30 @@
 
         // Fungsi pencarian
         function searchData(query) {
-            if (!query) {
-                currentData = allData;
+            if (!query || query.trim() === '') {
+                currentData = [];
                 document.getElementById('resultInfo').style.display = 'none';
-            } else {
-                const searchTerm = query.toLowerCase();
-                currentData = allData.filter(item => {
-                    const nama = (item.nama || '').toLowerCase();
-                    const nomorWA = (item.nomorWA || '').toString().replace(/\D/g, '');
-                    const searchNumber = query.replace(/\D/g, '');
-                    
-                    return nama.includes(searchTerm) || nomorWA.includes(searchNumber);
-                });
+                document.getElementById('content').innerHTML = '<div class="empty">🔍 Ketik nama atau nomor HP untuk mencari data...</div>';
+                return;
+            }
+            
+            const searchTerm = query.toLowerCase();
+            currentData = allData.filter(item => {
+                const nama = (item.nama || '').toLowerCase();
+                const nomorWA = (item.nomorWA || '').toString().replace(/\D/g, '');
+                const searchNumber = query.replace(/\D/g, '');
                 
-                // Tampilkan info hasil pencarian
-                const resultInfo = document.getElementById('resultInfo');
-                resultInfo.style.display = 'block';
-                resultInfo.textContent = `Ditemukan ${currentData.length} dari ${allData.length} data`;
+                return nama.includes(searchTerm) || nomorWA.includes(searchNumber);
+            });
+            
+            // Tampilkan info hasil pencarian
+            const resultInfo = document.getElementById('resultInfo');
+            resultInfo.style.display = 'block';
+            
+            if (currentData.length === 0) {
+                resultInfo.textContent = `Tidak ada data yang cocok dengan "${query}"`;
+            } else {
+                resultInfo.textContent = `Ditemukan ${currentData.length} data`;
             }
             
             displayData(currentData, query);
