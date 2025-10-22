@@ -44,12 +44,14 @@
 
         .search-box {
             margin-bottom: 20px;
-            position: relative;
+            display: flex;
+            gap: 10px;
+            align-items: stretch;
         }
 
         .search-input {
-            width: 100%;
-            padding: 15px 50px 15px 20px;
+            flex: 1;
+            padding: 15px 20px;
             border: 2px solid #ddd;
             border-radius: 12px;
             font-size: 16px;
@@ -62,25 +64,52 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .search-icon {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #999;
-            font-size: 20px;
+        .btn-search {
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .btn-search:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-search:active {
+            transform: translateY(0);
+        }
+
+        .btn-clear {
+            padding: 15px 25px;
+            background: #e0e0e0;
+            color: #333;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-clear:hover {
+            background: #d0d0d0;
         }
 
         .result-info {
             margin-bottom: 15px;
-            padding: 12px 20px;
-            background: #e8f5e9;
+            padding: 10px 15px;
+            background: #f0f0f0;
             border-radius: 8px;
-            color: #2e7d32;
-            font-size: 15px;
-            font-weight: 600;
-            border-left: 4px solid #4caf50;
-            transition: all 0.3s;
+            color: #666;
+            font-size: 14px;
         }
 
         label {
@@ -319,6 +348,10 @@
                 width: 100%;
             }
 
+            select {
+                width: 100%;
+            }
+
             .card-actions {
                 flex-direction: column;
             }
@@ -346,8 +379,10 @@
                 id="searchInput" 
                 class="search-input" 
                 placeholder="Cari berdasarkan nama atau nomor HP..."
+                onkeypress="if(event.key==='Enter') performSearch()"
             >
-            <span class="search-icon">🔍</span>
+            <button class="btn-search" onclick="performSearch()">🔍 Cari</button>
+            <button class="btn-clear" onclick="clearSearch()">✖ Reset</button>
         </div>
 
         <div id="resultInfo" style="display: none;" class="result-info"></div>
@@ -424,17 +459,28 @@
             }
         }
 
+        // Fungsi pencarian (dipanggil saat tombol Cari diklik)
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            searchData(query);
+        }
+
+        // Fungsi clear/reset pencarian
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            currentData = allData;
+            document.getElementById('resultInfo').style.display = 'none';
+            displayData(allData);
+        }
+
         // Fungsi pencarian
         function searchData(query) {
-            const resultInfo = document.getElementById('resultInfo');
-            
-            if (!query || query.trim() === '') {
-                // Jika kolom pencarian kosong, tampilkan semua data
+            if (!query) {
                 currentData = allData;
-                resultInfo.style.display = 'none';
+                document.getElementById('resultInfo').style.display = 'none';
+                displayData(allData);
             } else {
-                // Jika ada input pencarian, filter data
-                const searchTerm = query.toLowerCase().trim();
+                const searchTerm = query.toLowerCase();
                 currentData = allData.filter(item => {
                     const nama = (item.nama || '').toLowerCase();
                     const nomorWA = (item.nomorWA || '').toString().replace(/\D/g, '');
@@ -444,19 +490,12 @@
                 });
                 
                 // Tampilkan info hasil pencarian
+                const resultInfo = document.getElementById('resultInfo');
                 resultInfo.style.display = 'block';
-                if (currentData.length === 0) {
-                    resultInfo.textContent = `❌ Tidak ditemukan data yang cocok dengan "${query}"`;
-                    resultInfo.style.background = '#ffebee';
-                    resultInfo.style.color = '#c62828';
-                } else {
-                    resultInfo.textContent = `✅ Ditemukan ${currentData.length} data dari ${allData.length} total data`;
-                    resultInfo.style.background = '#e8f5e9';
-                    resultInfo.style.color = '#2e7d32';
-                }
+                resultInfo.textContent = `Ditemukan ${currentData.length} dari ${allData.length} data`;
+                
+                displayData(currentData, query);
             }
-            
-            displayData(currentData, query);
         }
 
         // Highlight text yang cocok dengan pencarian
@@ -472,19 +511,7 @@
             const content = document.getElementById('content');
             
             if (data.length === 0) {
-                if (searchQuery && searchQuery.trim() !== '') {
-                    // Jika ada pencarian tapi tidak ada hasil
-                    content.innerHTML = `
-                        <div class="empty">
-                            <div style="font-size: 3em; margin-bottom: 20px;">🔍</div>
-                            <div style="font-size: 1.2em; margin-bottom: 10px;">Tidak ada data yang ditemukan</div>
-                            <div style="font-size: 0.9em; color: #999;">Coba gunakan kata kunci lain atau hapus pencarian untuk melihat semua data</div>
-                        </div>
-                    `;
-                } else {
-                    // Jika memang tidak ada data di sheet
-                    content.innerHTML = '<div class="empty">Tidak ada data</div>';
-                }
+                content.innerHTML = '<div class="empty">Tidak ada data yang ditemukan</div>';
                 return;
             }
 
@@ -518,11 +545,11 @@
                 const waLink = waNumber.startsWith('62') ? waNumber : '62' + waNumber;
 
                 // Highlight nama dan nomor jika ada pencarian
-                const displayNama = (searchQuery && searchQuery.trim()) ? highlightText(item.nama, searchQuery) : item.nama;
-                const displayNomorWA = (searchQuery && searchQuery.trim()) ? highlightText(item.nomorWA, searchQuery) : item.nomorWA;
+                const displayNama = searchQuery ? highlightText(item.nama, searchQuery) : item.nama;
+                const displayNomorWA = searchQuery ? highlightText(item.nomorWA, searchQuery) : item.nomorWA;
 
                 const cancelButton = showCancelButton ? 
-                    `<button class="btn btn-cancel" onclick="cancelStatus('${item.nama}', ${index})">
+                    `<button class="btn btn-cancel" onclick="cancelStatus('${item.nama.replace(/'/g, "\\'")}', ${index})">
                         ❌ Batalkan
                     </button>` : '';
 
@@ -537,13 +564,13 @@
                     </div>
                     <div class="card-content">
                         <span class="card-label">List Barang:</span>
-                        ${item.listBarang || '-'}
+                        <div style="margin-top: 8px; white-space: pre-wrap;">${item.listBarang || '-'}</div>
                     </div>
                     <div class="card-actions">
-                        <button class="btn btn-invoice" onclick="updateStatus('${item.nama}', 'invoice', ${index})">
+                        <button class="btn btn-invoice" onclick="updateStatus('${item.nama.replace(/'/g, "\\'")}', 'invoice', ${index})">
                             ✅ Sudah Invoice
                         </button>
-                        <button class="btn btn-bayar" onclick="updateStatus('${item.nama}', 'bayar', ${index})">
+                        <button class="btn btn-bayar" onclick="updateStatus('${item.nama.replace(/'/g, "\\'")}', 'bayar', ${index})">
                             💰 Sudah Bayar
                         </button>
                         ${cancelButton}
@@ -655,11 +682,6 @@
         // Event listener untuk sheet select
         document.getElementById('sheetSelect').addEventListener('change', function() {
             loadData(this.value);
-        });
-
-        // Event listener untuk search input
-        document.getElementById('searchInput').addEventListener('input', function() {
-            searchData(this.value);
         });
 
         // Load sheets saat halaman dimuat
