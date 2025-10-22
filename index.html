@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cek Bayar Jastip</title>
+    <title>Data Pesanan</title>
     <style>
         * {
             margin: 0;
@@ -274,7 +274,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Cek Bayar Jastip</h1>
+        <h1>📋 Data Pesanan</h1>
         
         <div class="controls">
             <label for="sheetSelect">Pilih Sheet:</label>
@@ -422,8 +422,9 @@
             try {
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
+                    redirect: 'follow',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'text/plain;charset=utf-8',
                     },
                     body: JSON.stringify({
                         action: 'updateStatus',
@@ -432,6 +433,10 @@
                         status: status
                     })
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 const result = await response.json();
                 
@@ -443,7 +448,8 @@
                 await loadData(sheetName);
                 alert('Status berhasil diupdate!');
             } catch (error) {
-                alert('Error: ' + error.message);
+                console.error('Update error:', error);
+                alert('Error: ' + error.message + '\n\nPastikan:\n1. Google Apps Script sudah di-deploy ulang\n2. Execute as: Me\n3. Who has access: Anyone');
                 // Enable kembali tombol jika error
                 buttons.forEach(btn => btn.disabled = false);
             }
