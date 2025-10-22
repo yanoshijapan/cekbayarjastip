@@ -727,7 +727,7 @@
                     </div>
                     <div class="card-content">
                         <span class="card-label">List Barang:</span>
-                        ${displayListBarang || '-'}
+                        <div style="margin-top: 5px; white-space: pre-wrap;">${displayListBarang || '-'}</div>
                     </div>
                     <div class="card-actions">
                         <button class="btn btn-invoice" onclick="updateStatus('${item.nama.replace(/'/g, "\\'")}', 'invoice')">
