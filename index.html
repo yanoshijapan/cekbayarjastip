@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Pesanan</title>
+    <title>Dashboard Pembayaran Jastip</title>
     <style>
         * {
             margin: 0;
@@ -35,11 +35,49 @@
         }
 
         .controls {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             display: flex;
             gap: 15px;
             align-items: center;
             flex-wrap: wrap;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 50px 15px 20px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 20px;
+        }
+
+        .result-info {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            color: #666;
+            font-size: 14px;
         }
 
         label {
@@ -171,7 +209,7 @@
         }
 
         .btn {
-            padding: 12px 24px;
+            padding: 12px 20px;
             border: none;
             border-radius: 10px;
             font-weight: 600;
@@ -179,7 +217,7 @@
             transition: all 0.3s;
             font-size: 14px;
             flex: 1;
-            min-width: 140px;
+            min-width: 120px;
         }
 
         .btn:disabled {
@@ -207,6 +245,17 @@
             background: #2D5016;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-cancel {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-cancel:hover:not(:disabled) {
+            background: #f57c00;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
         }
 
         .error {
@@ -244,6 +293,11 @@
             color: white;
         }
 
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -274,7 +328,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📋 Data Pesanan</h1>
+        <h1>Dashboard Pembayaran Jastip</h1>
         
         <div class="controls">
             <label for="sheetSelect">Pilih Sheet:</label>
@@ -282,6 +336,18 @@
                 <option value="">-- Pilih Sheet --</option>
             </select>
         </div>
+
+        <div class="search-box" id="searchBox" style="display: none;">
+            <input 
+                type="text" 
+                id="searchInput" 
+                class="search-input" 
+                placeholder="Cari berdasarkan nama atau nomor HP..."
+            >
+            <span class="search-icon">🔍</span>
+        </div>
+
+        <div id="resultInfo" style="display: none;" class="result-info"></div>
 
         <div id="content">
             <div class="loading">
@@ -296,6 +362,7 @@
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbxKzS_wNoZY7ulE6Z44OC_0Vf_ISjFd_VRIMjjaSyOi_LfjsDZYFaSQaWoZbatOeiWxrw/exec';
 
         let currentData = [];
+        let allData = [];
 
         // Load daftar sheet saat halaman dimuat
         async function loadSheets() {
@@ -325,10 +392,13 @@
         async function loadData(sheetName) {
             if (!sheetName) {
                 document.getElementById('content').innerHTML = '<div class="empty">Silakan pilih sheet untuk melihat data</div>';
+                document.getElementById('searchBox').style.display = 'none';
+                document.getElementById('resultInfo').style.display = 'none';
                 return;
             }
 
             document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>Memuat data...</div>';
+            document.getElementById('searchBox').style.display = 'none';
 
             try {
                 const response = await fetch(`${GAS_URL}?action=getData&sheetName=${encodeURIComponent(sheetName)}`);
@@ -338,19 +408,57 @@
                     throw new Error(result.error);
                 }
 
+                allData = result.data;
                 currentData = result.data;
+                
+                // Tampilkan search box
+                document.getElementById('searchBox').style.display = 'block';
+                document.getElementById('searchInput').value = '';
+                
                 displayData(result.data);
             } catch (error) {
                 document.getElementById('content').innerHTML = `<div class="error">Error: ${error.message}</div>`;
             }
         }
 
+        // Fungsi pencarian
+        function searchData(query) {
+            if (!query) {
+                currentData = allData;
+                document.getElementById('resultInfo').style.display = 'none';
+            } else {
+                const searchTerm = query.toLowerCase();
+                currentData = allData.filter(item => {
+                    const nama = (item.nama || '').toLowerCase();
+                    const nomorWA = (item.nomorWA || '').toString().replace(/\D/g, '');
+                    const searchNumber = query.replace(/\D/g, '');
+                    
+                    return nama.includes(searchTerm) || nomorWA.includes(searchNumber);
+                });
+                
+                // Tampilkan info hasil pencarian
+                const resultInfo = document.getElementById('resultInfo');
+                resultInfo.style.display = 'block';
+                resultInfo.textContent = `Ditemukan ${currentData.length} dari ${allData.length} data`;
+            }
+            
+            displayData(currentData, query);
+        }
+
+        // Highlight text yang cocok dengan pencarian
+        function highlightText(text, query) {
+            if (!query || !text) return text;
+            
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.toString().replace(regex, '<span class="highlight">$1</span>');
+        }
+
         // Tampilkan data
-        function displayData(data) {
+        function displayData(data, searchQuery = '') {
             const content = document.getElementById('content');
             
             if (data.length === 0) {
-                content.innerHTML = '<div class="empty">Tidak ada data</div>';
+                content.innerHTML = '<div class="empty">Tidak ada data yang ditemukan</div>';
                 return;
             }
 
@@ -364,12 +472,18 @@
                 // Deteksi status dari warna background
                 let statusClass = '';
                 let statusBadge = '';
-                if (item.backgroundColor === '#4a90e2' || item.backgroundColor === '#4A90E2') {
+                let showCancelButton = false;
+                
+                const bgColor = item.backgroundColor.toLowerCase();
+                
+                if (bgColor === '#4a90e2') {
                     statusClass = 'invoice';
                     statusBadge = '<span class="status-badge status-invoice">Sudah Invoice</span>';
-                } else if (item.backgroundColor === '#2d5016' || item.backgroundColor === '#2D5016') {
+                    showCancelButton = true;
+                } else if (bgColor === '#2d5016') {
                     statusClass = 'bayar';
                     statusBadge = '<span class="status-badge status-bayar">Sudah Bayar</span>';
+                    showCancelButton = true;
                 }
                 
                 card.className += ' ' + statusClass;
@@ -377,13 +491,22 @@
                 const waNumber = item.nomorWA.toString().replace(/\D/g, '');
                 const waLink = waNumber.startsWith('62') ? waNumber : '62' + waNumber;
 
+                // Highlight nama dan nomor jika ada pencarian
+                const displayNama = searchQuery ? highlightText(item.nama, searchQuery) : item.nama;
+                const displayNomorWA = searchQuery ? highlightText(item.nomorWA, searchQuery) : item.nomorWA;
+
+                const cancelButton = showCancelButton ? 
+                    `<button class="btn btn-cancel" onclick="cancelStatus('${item.nama}', ${index})">
+                        ❌ Batalkan
+                    </button>` : '';
+
                 card.innerHTML = `
                     <div class="card-header">
                         <div>
-                            <div class="card-title">${item.nama} ${statusBadge}</div>
+                            <div class="card-title">${displayNama} ${statusBadge}</div>
                         </div>
                         <a href="https://wa.me/${waLink}" target="_blank" class="card-wa">
-                            📱 WhatsApp
+                            📱 ${displayNomorWA}
                         </a>
                     </div>
                     <div class="card-content">
@@ -397,6 +520,7 @@
                         <button class="btn btn-bayar" onclick="updateStatus('${item.nama}', 'bayar', ${index})">
                             💰 Sudah Bayar
                         </button>
+                        ${cancelButton}
                     </div>
                 `;
 
@@ -455,9 +579,61 @@
             }
         }
 
-        // Event listener
+        // Batalkan status
+        async function cancelStatus(nama, index) {
+            const sheetName = document.getElementById('sheetSelect').value;
+            
+            if (!confirm(`Apakah Anda yakin ingin membatalkan status "${nama}"?`)) {
+                return;
+            }
+
+            // Disable semua tombol
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => btn.disabled = true);
+
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    redirect: 'follow',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8',
+                    },
+                    body: JSON.stringify({
+                        action: 'cancelStatus',
+                        sheetName: sheetName,
+                        nama: nama
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                // Reload data
+                await loadData(sheetName);
+                alert('Status berhasil dibatalkan!');
+            } catch (error) {
+                console.error('Cancel error:', error);
+                alert('Error: ' + error.message);
+                // Enable kembali tombol jika error
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+
+        // Event listener untuk sheet select
         document.getElementById('sheetSelect').addEventListener('change', function() {
             loadData(this.value);
+        });
+
+        // Event listener untuk search input
+        document.getElementById('searchInput').addEventListener('input', function() {
+            searchData(this.value);
         });
 
         // Load sheets saat halaman dimuat
