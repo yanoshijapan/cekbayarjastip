@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Cek Pembayaran Jastip</title>
+    <title>Dashboard Pembayaran Jastip</title>
     <style>
         * {
             margin: 0;
@@ -42,16 +42,18 @@
             flex-wrap: wrap;
         }
 
-        .search-box {
+        .search-container {
             margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            align-items: stretch;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 10px;
         }
 
         .search-input {
-            flex: 1;
-            padding: 15px 20px;
+            width: 100%;
+            padding: 15px 120px 15px 50px;
             border: 2px solid #ddd;
             border-radius: 12px;
             font-size: 16px;
@@ -64,52 +66,99 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .btn-search {
-            padding: 15px 30px;
-            background: #667eea;
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 20px;
+        }
+
+        .clear-search {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #ff9800;
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
-
-        .btn-search:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-search:active {
-            transform: translateY(0);
-        }
-
-        .btn-clear {
-            padding: 15px 25px;
-            background: #e0e0e0;
-            color: #333;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
+            transition: all 0.3s;
+            display: none;
+        }
+
+        .clear-search:hover {
+            background: #f57c00;
+        }
+
+        .clear-search.visible {
+            display: block;
+        }
+
+        .search-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 20px;
             cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
             transition: all 0.3s;
         }
 
-        .btn-clear:hover {
-            background: #d0d0d0;
+        .filter-btn:hover {
+            border-color: #667eea;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
         }
 
         .result-info {
-            margin-bottom: 15px;
-            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
             background: #f0f0f0;
             border-radius: 8px;
             color: #666;
             font-size: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .result-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 700;
         }
 
         label {
@@ -326,8 +375,21 @@
         }
 
         .highlight {
-            background-color: yellow;
-            font-weight: bold;
+            background-color: #ffeb3b;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .no-results-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
         }
 
         @media (max-width: 768px) {
@@ -348,10 +410,6 @@
                 width: 100%;
             }
 
-            select {
-                width: 100%;
-            }
-
             .card-actions {
                 flex-direction: column;
             }
@@ -359,12 +417,21 @@
             .btn {
                 width: 100%;
             }
+
+            .search-input {
+                padding-right: 100px;
+            }
+
+            .result-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Dashboard Cek Pembayaran Jastip</h1>
+        <h1>Dashboard Pembayaran Jastip</h1>
         
         <div class="controls">
             <label for="sheetSelect">Pilih Sheet:</label>
@@ -373,19 +440,49 @@
             </select>
         </div>
 
-        <div class="search-box" id="searchBox" style="display: none;">
-            <input 
-                type="text" 
-                id="searchInput" 
-                class="search-input" 
-                placeholder="Cari berdasarkan nama atau nomor HP..."
-                onkeypress="if(event.key==='Enter') performSearch()"
-            >
-            <button class="btn-search" onclick="performSearch()">🔍 Cari</button>
-            <button class="btn-clear" onclick="clearSearch()">✖ Reset</button>
-        </div>
+        <div class="search-container" id="searchContainer" style="display: none;">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="search-input" 
+                    placeholder="Cari berdasarkan nama atau nomor HP..."
+                >
+                <button class="clear-search" id="clearSearch" onclick="clearSearch()">
+                    ✕ Hapus
+                </button>
+            </div>
 
-        <div id="resultInfo" style="display: none;" class="result-info"></div>
+            <div class="search-filters">
+                <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">
+                    🔵 Semua
+                </button>
+                <button class="filter-btn" data-filter="belum" onclick="setFilter('belum')">
+                    ⚪ Belum Bayar
+                </button>
+                <button class="filter-btn" data-filter="invoice" onclick="setFilter('invoice')">
+                    🔷 Sudah Invoice
+                </button>
+                <button class="filter-btn" data-filter="bayar" onclick="setFilter('bayar')">
+                    🟢 Sudah Bayar
+                </button>
+            </div>
+
+            <div id="resultInfo" style="display: none;" class="result-info">
+                <div class="result-stats">
+                    <div class="stat-item">
+                        <span>Menampilkan:</span>
+                        <span class="stat-badge" id="showingCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Total:</span>
+                        <span class="stat-badge" id="totalCount">0</span>
+                    </div>
+                </div>
+                <div id="searchTerm"></div>
+            </div>
+        </div>
 
         <div id="content">
             <div class="loading">
@@ -396,13 +493,13 @@
     </div>
 
     <script>
-        // GANTI URL INI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbxKzS_wNoZY7ulE6Z44OC_0Vf_ISjFd_VRIMjjaSyOi_LfjsDZYFaSQaWoZbatOeiWxrw/exec';
 
         let currentData = [];
         let allData = [];
+        let currentFilter = 'all';
+        let searchTimeout = null;
 
-        // Load daftar sheet saat halaman dimuat
         async function loadSheets() {
             try {
                 const response = await fetch(`${GAS_URL}?action=getSheets`);
@@ -426,17 +523,16 @@
             }
         }
 
-        // Load data dari sheet tertentu
         async function loadData(sheetName) {
             if (!sheetName) {
                 document.getElementById('content').innerHTML = '<div class="empty">Silakan pilih sheet untuk melihat data</div>';
-                document.getElementById('searchBox').style.display = 'none';
+                document.getElementById('searchContainer').style.display = 'none';
                 document.getElementById('resultInfo').style.display = 'none';
                 return;
             }
 
             document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>Memuat data...</div>';
-            document.getElementById('searchBox').style.display = 'none';
+            document.getElementById('searchContainer').style.display = 'none';
 
             try {
                 const response = await fetch(`${GAS_URL}?action=getData&sheetName=${encodeURIComponent(sheetName)}`);
@@ -449,69 +545,137 @@
                 allData = result.data;
                 currentData = result.data;
                 
-                // Tampilkan search box
-                document.getElementById('searchBox').style.display = 'block';
+                document.getElementById('searchContainer').style.display = 'block';
                 document.getElementById('searchInput').value = '';
+                document.getElementById('clearSearch').classList.remove('visible');
+                currentFilter = 'all';
+                updateFilterButtons();
                 
-                displayData(result.data);
+                applyFilters();
             } catch (error) {
                 document.getElementById('content').innerHTML = `<div class="error">Error: ${error.message}</div>`;
             }
         }
 
-        // Fungsi pencarian (dipanggil saat tombol Cari diklik)
-        function performSearch() {
-            const query = document.getElementById('searchInput').value.trim();
-            searchData(query);
+        function normalizeString(str) {
+            return str.toString().toLowerCase().trim()
+                .replace(/\s+/g, ' ');
         }
 
-        // Fungsi clear/reset pencarian
-        function clearSearch() {
-            document.getElementById('searchInput').value = '';
-            currentData = allData;
-            document.getElementById('resultInfo').style.display = 'none';
-            displayData(allData);
+        function normalizePhone(phone) {
+            return phone.toString().replace(/\D/g, '');
         }
 
-        // Fungsi pencarian
         function searchData(query) {
-            if (!query) {
-                currentData = allData;
-                document.getElementById('resultInfo').style.display = 'none';
-                displayData(allData);
-            } else {
-                const searchTerm = query.toLowerCase();
-                currentData = allData.filter(item => {
-                    const nama = (item.nama || '').toLowerCase();
-                    const nomorWA = (item.nomorWA || '').toString().replace(/\D/g, '');
-                    const searchNumber = query.replace(/\D/g, '');
-                    
-                    return nama.includes(searchTerm) || nomorWA.includes(searchNumber);
-                });
-                
-                // Tampilkan info hasil pencarian
-                const resultInfo = document.getElementById('resultInfo');
-                resultInfo.style.display = 'block';
-                resultInfo.textContent = `Ditemukan ${currentData.length} dari ${allData.length} data`;
-                
-                displayData(currentData, query);
-            }
+            clearTimeout(searchTimeout);
+            
+            searchTimeout = setTimeout(() => {
+                applyFilters();
+            }, 300);
         }
 
-        // Highlight text yang cocok dengan pencarian
+        function applyFilters() {
+            const searchQuery = document.getElementById('searchInput').value.trim();
+            const clearBtn = document.getElementById('clearSearch');
+            
+            if (searchQuery) {
+                clearBtn.classList.add('visible');
+            } else {
+                clearBtn.classList.remove('visible');
+            }
+
+            let filteredData = [...allData];
+
+            if (currentFilter !== 'all') {
+                filteredData = filteredData.filter(item => {
+                    const bgColor = item.backgroundColor.toLowerCase();
+                    if (currentFilter === 'invoice') {
+                        return bgColor === '#4a90e2';
+                    } else if (currentFilter === 'bayar') {
+                        return bgColor === '#2d5016';
+                    } else if (currentFilter === 'belum') {
+                        return bgColor !== '#4a90e2' && bgColor !== '#2d5016';
+                    }
+                    return true;
+                });
+            }
+
+            if (searchQuery) {
+                const searchTerm = normalizeString(searchQuery);
+                const searchNumber = normalizePhone(searchQuery);
+                
+                filteredData = filteredData.filter(item => {
+                    const nama = normalizeString(item.nama || '');
+                    const nomorWA = normalizePhone(item.nomorWA || '');
+                    const listBarang = normalizeString(item.listBarang || '');
+                    
+                    const namaMatch = nama.includes(searchTerm);
+                    const phoneMatch = searchNumber && nomorWA.includes(searchNumber);
+                    const barangMatch = listBarang.includes(searchTerm);
+                    
+                    return namaMatch || phoneMatch || barangMatch;
+                });
+            }
+
+            currentData = filteredData;
+            updateResultInfo(searchQuery);
+            displayData(currentData, searchQuery);
+        }
+
+        function updateResultInfo(searchQuery) {
+            const resultInfo = document.getElementById('resultInfo');
+            const showingCount = document.getElementById('showingCount');
+            const totalCount = document.getElementById('totalCount');
+            const searchTerm = document.getElementById('searchTerm');
+            
+            showingCount.textContent = currentData.length;
+            totalCount.textContent = allData.length;
+            
+            if (searchQuery) {
+                searchTerm.innerHTML = `<strong>Pencarian:</strong> "${searchQuery}"`;
+            } else if (currentFilter !== 'all') {
+                const filterNames = {
+                    'belum': 'Belum Bayar',
+                    'invoice': 'Sudah Invoice',
+                    'bayar': 'Sudah Bayar'
+                };
+                searchTerm.innerHTML = `<strong>Filter:</strong> ${filterNames[currentFilter]}`;
+            } else {
+                searchTerm.innerHTML = '';
+            }
+            
+            resultInfo.style.display = 'flex';
+        }
+
         function highlightText(text, query) {
             if (!query || !text) return text;
             
-            const regex = new RegExp(`(${query})`, 'gi');
-            return text.toString().replace(regex, '<span class="highlight">$1</span>');
+            const searchTerm = normalizeString(query);
+            const textNormalized = normalizeString(text);
+            
+            if (!textNormalized.includes(searchTerm)) return text;
+            
+            const textStr = text.toString();
+            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+            return textStr.replace(regex, '<span class="highlight">$1</span>');
         }
 
-        // Tampilkan data
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
         function displayData(data, searchQuery = '') {
             const content = document.getElementById('content');
             
             if (data.length === 0) {
-                content.innerHTML = '<div class="empty">Tidak ada data yang ditemukan</div>';
+                const hasSearch = searchQuery || currentFilter !== 'all';
+                content.innerHTML = `
+                    <div class="no-results">
+                        <div class="no-results-icon">🔍</div>
+                        <h3>Tidak ada data yang ditemukan</h3>
+                        <p>${hasSearch ? 'Coba ubah kata kunci atau filter pencarian Anda' : 'Belum ada data tersedia'}</p>
+                    </div>
+                `;
                 return;
             }
 
@@ -522,7 +686,6 @@
                 const card = document.createElement('div');
                 card.className = 'data-card';
                 
-                // Deteksi status dari warna background
                 let statusClass = '';
                 let statusBadge = '';
                 let showCancelButton = false;
@@ -541,12 +704,12 @@
                 
                 card.className += ' ' + statusClass;
 
-                const waNumber = item.nomorWA.toString().replace(/\D/g, '');
+                const waNumber = normalizePhone(item.nomorWA);
                 const waLink = waNumber.startsWith('62') ? waNumber : '62' + waNumber;
 
-                // Highlight nama dan nomor jika ada pencarian
-                const displayNama = searchQuery ? highlightText(item.nama, searchQuery) : item.nama;
-                const displayNomorWA = searchQuery ? highlightText(item.nomorWA, searchQuery) : item.nomorWA;
+                const displayNama = highlightText(item.nama, searchQuery);
+                const displayNomorWA = highlightText(item.nomorWA, searchQuery);
+                const displayListBarang = highlightText(item.listBarang, searchQuery);
 
                 const cancelButton = showCancelButton ? 
                     `<button class="btn btn-cancel" onclick="cancelStatus('${item.nama.replace(/'/g, "\\'")}', ${index})">
@@ -564,7 +727,7 @@
                     </div>
                     <div class="card-content">
                         <span class="card-label">List Barang:</span>
-                        <div style="margin-top: 8px; white-space: pre-wrap;">${item.listBarang || '-'}</div>
+                        ${displayListBarang || '-'}
                     </div>
                     <div class="card-actions">
                         <button class="btn btn-invoice" onclick="updateStatus('${item.nama.replace(/'/g, "\\'")}', 'invoice', ${index})">
@@ -584,7 +747,29 @@
             content.appendChild(grid);
         }
 
-        // Update status
+        function setFilter(filter) {
+            currentFilter = filter;
+            updateFilterButtons();
+            applyFilters();
+        }
+
+        function updateFilterButtons() {
+            const buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => {
+                if (btn.dataset.filter === currentFilter) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('clearSearch').classList.remove('visible');
+            applyFilters();
+        }
+
         async function updateStatus(nama, status, index) {
             const sheetName = document.getElementById('sheetSelect').value;
             
@@ -592,7 +777,6 @@
                 return;
             }
 
-            // Disable semua tombol
             const buttons = document.querySelectorAll('.btn');
             buttons.forEach(btn => btn.disabled = true);
 
@@ -621,18 +805,15 @@
                     throw new Error(result.error);
                 }
 
-                // Reload data
                 await loadData(sheetName);
                 alert('Status berhasil diupdate!');
             } catch (error) {
                 console.error('Update error:', error);
-                alert('Error: ' + error.message + '\n\nPastikan:\n1. Google Apps Script sudah di-deploy ulang\n2. Execute as: Me\n3. Who has access: Anyone');
-                // Enable kembali tombol jika error
+                alert('Error: ' + error.message);
                 buttons.forEach(btn => btn.disabled = false);
             }
         }
 
-        // Batalkan status
         async function cancelStatus(nama, index) {
             const sheetName = document.getElementById('sheetSelect').value;
             
@@ -640,7 +821,6 @@
                 return;
             }
 
-            // Disable semua tombol
             const buttons = document.querySelectorAll('.btn');
             buttons.forEach(btn => btn.disabled = true);
 
@@ -668,23 +848,23 @@
                     throw new Error(result.error);
                 }
 
-                // Reload data
                 await loadData(sheetName);
                 alert('Status berhasil dibatalkan!');
             } catch (error) {
                 console.error('Cancel error:', error);
                 alert('Error: ' + error.message);
-                // Enable kembali tombol jika error
                 buttons.forEach(btn => btn.disabled = false);
             }
         }
 
-        // Event listener untuk sheet select
         document.getElementById('sheetSelect').addEventListener('change', function() {
             loadData(this.value);
         });
 
-        // Load sheets saat halaman dimuat
+        document.getElementById('searchInput').addEventListener('input', function() {
+            searchData(this.value);
+        });
+
         loadSheets();
     </script>
 </body>
