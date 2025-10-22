@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cek Bayar Jastip</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+
+        .controls {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        select {
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 200px;
+        }
+
+        select:hover {
+            border-color: #667eea;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .data-grid {
+            display: grid;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .data-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .data-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .data-card.invoice {
+            background: #E3F2FD;
+            border-color: #4A90E2;
+        }
+
+        .data-card.bayar {
+            background: #E8F5E9;
+            border-color: #2D5016;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .card-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .card-wa {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #25D366;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .card-wa:hover {
+            background: #128C7E;
+            transform: scale(1.05);
+        }
+
+        .card-content {
+            margin-bottom: 15px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .card-label {
+            font-weight: 600;
+            color: #666;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-invoice {
+            background: #4A90E2;
+            color: white;
+        }
+
+        .btn-invoice:hover:not(:disabled) {
+            background: #357ABD;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        .btn-bayar {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-bayar:hover:not(:disabled) {
+            background: #2D5016;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #c62828;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            font-size: 18px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-invoice {
+            background: #4A90E2;
+            color: white;
+        }
+
+        .status-bayar {
+            background: #2D5016;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            select {
+                width: 100%;
+            }
+
+            .card-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cek Bayar Jastip</h1>
+        
+        <div class="controls">
+            <label for="sheetSelect">Pilih Sheet:</label>
+            <select id="sheetSelect">
+                <option value="">-- Pilih Sheet --</option>
+            </select>
+        </div>
+
+        <div id="content">
+            <div class="loading">
+                <div class="spinner"></div>
+                Memuat data...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // GANTI URL INI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxKzS_wNoZY7ulE6Z44OC_0Vf_ISjFd_VRIMjjaSyOi_LfjsDZYFaSQaWoZbatOeiWxrw/exec';
+
+        let currentData = [];
+
+        // Load daftar sheet saat halaman dimuat
+        async function loadSheets() {
+            try {
+                const response = await fetch(`${GAS_URL}?action=getSheets`);
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                const select = document.getElementById('sheetSelect');
+                result.sheets.forEach(sheet => {
+                    const option = document.createElement('option');
+                    option.value = sheet;
+                    option.textContent = sheet;
+                    select.appendChild(option);
+                });
+
+                document.getElementById('content').innerHTML = '<div class="empty">Silakan pilih sheet untuk melihat data</div>';
+            } catch (error) {
+                document.getElementById('content').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Load data dari sheet tertentu
+        async function loadData(sheetName) {
+            if (!sheetName) {
+                document.getElementById('content').innerHTML = '<div class="empty">Silakan pilih sheet untuk melihat data</div>';
+                return;
+            }
+
+            document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>Memuat data...</div>';
+
+            try {
+                const response = await fetch(`${GAS_URL}?action=getData&sheetName=${encodeURIComponent(sheetName)}`);
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                currentData = result.data;
+                displayData(result.data);
+            } catch (error) {
+                document.getElementById('content').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Tampilkan data
+        function displayData(data) {
+            const content = document.getElementById('content');
+            
+            if (data.length === 0) {
+                content.innerHTML = '<div class="empty">Tidak ada data</div>';
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'data-grid';
+
+            data.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'data-card';
+                
+                // Deteksi status dari warna background
+                let statusClass = '';
+                let statusBadge = '';
+                if (item.backgroundColor === '#4a90e2' || item.backgroundColor === '#4A90E2') {
+                    statusClass = 'invoice';
+                    statusBadge = '<span class="status-badge status-invoice">Sudah Invoice</span>';
+                } else if (item.backgroundColor === '#2d5016' || item.backgroundColor === '#2D5016') {
+                    statusClass = 'bayar';
+                    statusBadge = '<span class="status-badge status-bayar">Sudah Bayar</span>';
+                }
+                
+                card.className += ' ' + statusClass;
+
+                const waNumber = item.nomorWA.toString().replace(/\D/g, '');
+                const waLink = waNumber.startsWith('62') ? waNumber : '62' + waNumber;
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${item.nama} ${statusBadge}</div>
+                        </div>
+                        <a href="https://wa.me/${waLink}" target="_blank" class="card-wa">
+                            📱 WhatsApp
+                        </a>
+                    </div>
+                    <div class="card-content">
+                        <span class="card-label">List Barang:</span>
+                        ${item.listBarang || '-'}
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-invoice" onclick="updateStatus('${item.nama}', 'invoice', ${index})">
+                            ✅ Sudah Invoice
+                        </button>
+                        <button class="btn btn-bayar" onclick="updateStatus('${item.nama}', 'bayar', ${index})">
+                            💰 Sudah Bayar
+                        </button>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+
+            content.innerHTML = '';
+            content.appendChild(grid);
+        }
+
+        // Update status
+        async function updateStatus(nama, status, index) {
+            const sheetName = document.getElementById('sheetSelect').value;
+            
+            if (!confirm(`Apakah Anda yakin ingin menandai "${nama}" sebagai ${status === 'invoice' ? 'sudah invoice' : 'sudah bayar'}?`)) {
+                return;
+            }
+
+            // Disable semua tombol
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => btn.disabled = true);
+
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'updateStatus',
+                        sheetName: sheetName,
+                        nama: nama,
+                        status: status
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                // Reload data
+                await loadData(sheetName);
+                alert('Status berhasil diupdate!');
+            } catch (error) {
+                alert('Error: ' + error.message);
+                // Enable kembali tombol jika error
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+
+        // Event listener
+        document.getElementById('sheetSelect').addEventListener('change', function() {
+            loadData(this.value);
+        });
+
+        // Load sheets saat halaman dimuat
+        loadSheets();
+    </script>
+</body>
+</html>
