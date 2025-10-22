@@ -889,22 +889,23 @@
             data.forEach((item, index) => {
                 const card = document.createElement('div');
                 card.className = 'data-card';
+                card.id = `card_${item.nama.replace(/[^a-zA-Z0-9]/g, '_')}`;
                 
                 let statusClass = '';
                 let statusBadge = '';
                 let showCancelButton = false;
                 
-                const bgColor = item.backgroundColor.toLowerCase();
+                const bgColor = (item.backgroundColor || '#ffffff').toLowerCase();
                 
-                if (bgColor === '#fbc02d' || bgColor === '#ffeb3b') {
+                if (bgColor.includes('fbc02d') || bgColor.includes('ffeb3b') || bgColor.includes('f9a825')) {
                     statusClass = 'dp';
                     statusBadge = '<span class="status-badge status-dp">Sudah DP</span>';
                     showCancelButton = true;
-                } else if (bgColor === '#4a90e2') {
+                } else if (bgColor.includes('4a90e2') || bgColor.includes('357abd')) {
                     statusClass = 'invoice';
                     statusBadge = '<span class="status-badge status-invoice">Sudah Invoice</span>';
                     showCancelButton = true;
-                } else if (bgColor === '#2d5016') {
+                } else if (bgColor.includes('2d5016') || bgColor.includes('4caf50')) {
                     statusClass = 'bayar';
                     statusBadge = '<span class="status-badge status-bayar">Sudah Bayar</span>';
                     showCancelButton = true;
@@ -1064,7 +1065,11 @@
             }
 
             const buttons = document.querySelectorAll('.btn');
-            buttons.forEach(btn => btn.disabled = true);
+            const originalButtonStates = [];
+            buttons.forEach(btn => {
+                originalButtonStates.push(btn.disabled);
+                btn.disabled = true;
+            });
 
             try {
                 const response = await fetch(GAS_URL, {
@@ -1092,12 +1097,31 @@
                     throw new Error(result.error);
                 }
 
+                // Reload data untuk refresh warna
                 await loadData(sheetName);
+                
+                // Scroll ke posisi card yang di-update
+                setTimeout(() => {
+                    const cardId = `card_${nama.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    const card = document.getElementById(cardId);
+                    if (card) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Highlight effect
+                        card.style.transition = 'transform 0.3s';
+                        card.style.transform = 'scale(1.02)';
+                        setTimeout(() => {
+                            card.style.transform = 'scale(1)';
+                        }, 300);
+                    }
+                }, 500);
+                
                 alert('Status berhasil diupdate!');
             } catch (error) {
                 console.error('Update error:', error);
                 alert('Error: ' + error.message);
-                buttons.forEach(btn => btn.disabled = false);
+                buttons.forEach((btn, index) => {
+                    btn.disabled = originalButtonStates[index];
+                });
             }
         }
 
