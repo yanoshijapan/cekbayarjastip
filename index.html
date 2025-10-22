@@ -463,7 +463,7 @@
                     type="text" 
                     id="searchInput" 
                     class="search-input" 
-                    placeholder="Cari berdasarkan nama atau nomor HP..."
+                    placeholder="Cari berdasarkan nama pengirim, penerima, nomor HP, atau barang..."
                 >
                 <button class="clear-search" id="clearSearch" onclick="clearSearch()">
                     ✕ Hapus
@@ -621,15 +621,17 @@
                 const searchNumber = normalizePhone(searchQuery);
                 
                 filteredData = filteredData.filter(item => {
-                    const nama = normalizeString(item.nama || '');
+                    const namaPengirim = normalizeString(item.namaPengirim || '');
+                    const namaPenerima = normalizeString(item.namaPenerima || '');
                     const nomorWA = normalizePhone(item.nomorWA || '');
                     const listBarang = normalizeString(item.listBarang || '');
                     
-                    const namaMatch = nama.includes(searchTerm);
+                    const pengirimMatch = namaPengirim.includes(searchTerm);
+                    const penerimaMatch = namaPenerima.includes(searchTerm);
                     const phoneMatch = searchNumber && nomorWA.includes(searchNumber);
                     const barangMatch = listBarang.includes(searchTerm);
                     
-                    return namaMatch || phoneMatch || barangMatch;
+                    return pengirimMatch || penerimaMatch || phoneMatch || barangMatch;
                 });
             }
 
@@ -720,36 +722,48 @@
                 
                 card.className += ' ' + statusClass;
 
-                const waNumber = normalizePhone(item.nomorWA);
+                const waNumber = normalizePhone(item.nomorWA || '');
                 const waLink = waNumber.startsWith('62') ? waNumber : '62' + waNumber;
 
-                const displayNama = highlightText(item.nama, searchQuery);
-                const displayNomorWA = highlightText(item.nomorWA, searchQuery);
-                const displayListBarang = highlightText(item.listBarang, searchQuery);
+                const displayNamaPengirim = highlightText(item.namaPengirim || '', searchQuery);
+                const displayNamaPenerima = highlightText(item.namaPenerima || '', searchQuery);
+                const displayNomorWA = highlightText(item.nomorWA || '', searchQuery);
+                const displayListBarang = highlightText(item.listBarang || '', searchQuery);
+
+                // Escape nama pengirim untuk onclick handler
+                const escapedNamaPengirim = (item.namaPengirim || '').toString().replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
                 const cancelButton = showCancelButton ? 
-                    `<button class="btn btn-cancel" onclick="cancelStatus('${item.nama.replace(/'/g, "\\'")}')">
+                    `<button class="btn btn-cancel" onclick="cancelStatus('${escapedNamaPengirim}')">
                         ❌ Batalkan
                     </button>` : '';
 
                 card.innerHTML = `
                     <div class="card-header">
                         <div>
-                            <div class="card-title">${displayNama} ${statusBadge}</div>
+                            <div class="card-title">${displayNamaPengirim || 'Tanpa Nama'} ${statusBadge}</div>
                         </div>
                         <a href="https://wa.me/${waLink}" target="_blank" class="card-wa">
-                            📱 ${displayNomorWA}
+                            📱 ${displayNomorWA || '-'}
                         </a>
                     </div>
                     <div class="card-content">
-                        <span class="card-label">List Barang:</span>
-                        <div style="margin-top: 5px; white-space: pre-wrap;">${displayListBarang || '-'}</div>
+                        <div class="info-row">
+                            <span class="info-icon">👤</span>
+                            <span class="card-label">Nama Penerima:</span>
+                            <span class="card-value">${displayNamaPenerima || '-'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-icon">📦</span>
+                            <span class="card-label">List Barang:</span>
+                            <span class="card-value" style="white-space: pre-wrap;">${displayListBarang || '-'}</span>
+                        </div>
                     </div>
                     <div class="card-actions">
-                        <button class="btn btn-invoice" onclick="updateStatus('${item.nama.replace(/'/g, "\\'")}', 'invoice')">
+                        <button class="btn btn-invoice" onclick="updateStatus('${escapedNamaPengirim}', 'invoice')">
                             ✅ Sudah Invoice
                         </button>
-                        <button class="btn btn-bayar" onclick="updateStatus('${item.nama.replace(/'/g, "\\'")}', 'bayar')">
+                        <button class="btn btn-bayar" onclick="updateStatus('${escapedNamaPengirim}', 'bayar')">
                             💰 Sudah Bayar
                         </button>
                         ${cancelButton}
