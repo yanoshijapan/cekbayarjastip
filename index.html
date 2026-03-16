@@ -1031,15 +1031,17 @@
             }
         
             const sheetName = document.getElementById('sheetSelect').value;
-            const button = event.target; // Sekarang event aman karena sudah di-passing
+            
+            // Sekarang event.target akan selalu valid
+            const button = event.target || event.srcElement; 
             button.disabled = true;
             button.textContent = '⏳ Mengupload...';
         
             const reader = new FileReader();
             
-            // Proses ini dieksekusi setelah file selesai dibaca
+            // Gunakan try-catch DI DALAM callback asinkron untuk menangkap error network/GAS
             reader.onload = async function(e) {
-                try { // Pindahkan try...catch ke DALAM scope asinkron ini
+                try {
                     const base64Data = e.target.result.split(',')[1];
                     
                     const response = await fetch(GAS_URL, {
@@ -1060,7 +1062,7 @@
                     });
         
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        throw new Error(`Koneksi Gagal! Status: ${response.status}`);
                     }
         
                     const result = await response.json();
@@ -1074,14 +1076,20 @@
                     alert('File berhasil diupload!');
                 } catch (error) {
                     console.error('Upload error:', error);
-                    alert('Upload gagal: ' + error.message);
-                    // Penting: Kembalikan tombol ke keadaan semula jika error
+                    // Error kini akan ditangkap secara elegan di UI
+                    alert('Gagal mengupload file: ' + error.message + '\nPastikan ukuran PDF tidak terlalu besar.');
                     button.disabled = false;
                     button.textContent = '📤 Kirim';
                 }
             };
+        
+            // Antisipasi jika browser gagal membaca file dari memori lokal
+            reader.onerror = function() {
+                alert('Gagal membaca file dari perangkat Anda.');
+                button.disabled = false;
+                button.textContent = '📤 Kirim';
+            };
             
-            // Perintah yang memicu sistem membaca file
             reader.readAsDataURL(file);
         }
 
