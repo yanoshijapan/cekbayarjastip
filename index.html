@@ -940,7 +940,12 @@
                 const displayNama = highlightText(item.nama || '', searchQuery);
                 const displayListBarang = highlightText(item.listBarang || '', searchQuery);
 
-                const escapedNama = (item.nama || '').toString().replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const escapedNama = (item.nama || '').toString()
+                    .replace(/\\/g, '\\\\')    // Mengamankan karakter backslash
+                    .replace(/'/g, "\\'")      // Mengamankan tanda kutip tunggal
+                    .replace(/"/g, '&quot;')   // Mengamankan tanda kutip ganda
+                    .replace(/\n/g, '\\n')     // Mengamankan karakter Enter (newline)
+                    .replace(/\r/g, '');       // Menghapus carriage return (sisa copy-paste Windows)
 
                 const cancelButton = showCancelButton ? 
                     `<button class="btn btn-cancel" onclick="cancelStatus('${escapedNama}')">
