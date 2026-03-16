@@ -971,7 +971,7 @@
                             <div class="file-input-wrapper">
                                 <input type="file" class="file-input" id="file_${index}" accept="image/*,.pdf">
                             </div>
-                            <button class="btn-upload" onclick="uploadInvoice('${escapedNama}', ${index})">
+                            <button class="btn-upload" onclick="uploadInvoice(event, '${escapedNama}', ${index})">
                                 📤 Kirim
                             </button>
                         </div>
@@ -1021,7 +1021,7 @@
             applyFilters();
         }
 
-        async function uploadInvoice(nama, index) {
+        async function uploadInvoice(event, nama, index) {
             const fileInput = document.getElementById(`file_${index}`);
             const file = fileInput.files[0];
             
@@ -1029,15 +1029,17 @@
                 alert('Silakan pilih file terlebih dahulu');
                 return;
             }
-
+        
             const sheetName = document.getElementById('sheetSelect').value;
-            const button = event.target;
+            const button = event.target; // Sekarang event aman karena sudah di-passing
             button.disabled = true;
             button.textContent = '⏳ Mengupload...';
-
-            try {
-                const reader = new FileReader();
-                reader.onload = async function(e) {
+        
+            const reader = new FileReader();
+            
+            // Proses ini dieksekusi setelah file selesai dibaca
+            reader.onload = async function(e) {
+                try { // Pindahkan try...catch ke DALAM scope asinkron ini
                     const base64Data = e.target.result.split(',')[1];
                     
                     const response = await fetch(GAS_URL, {
@@ -1053,32 +1055,34 @@
                             fileName: file.name,
                             fileData: base64Data,
                             mimeType: file.type,
-                            namaCol: currentConfig.namaCol // Kirim namaCol saat upload
+                            namaCol: currentConfig.namaCol
                         })
                     });
-
+        
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-
+        
                     const result = await response.json();
                     
                     if (result.error) {
                         throw new Error(result.error);
                     }
-
+        
                     fileInput.value = '';
-                    await loadData(sheetName); // Muat ulang data untuk tampilkan link
+                    await loadData(sheetName); 
                     alert('File berhasil diupload!');
-                };
-                
-                reader.readAsDataURL(file);
-            } catch (error) {
-                console.error('Upload error:', error);
-                alert('Error: ' + error.message);
-                button.disabled = false;
-                button.textContent = '📤 Kirim';
-            }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('Upload gagal: ' + error.message);
+                    // Penting: Kembalikan tombol ke keadaan semula jika error
+                    button.disabled = false;
+                    button.textContent = '📤 Kirim';
+                }
+            };
+            
+            // Perintah yang memicu sistem membaca file
+            reader.readAsDataURL(file);
         }
 
         async function updateStatus(nama, status) {
