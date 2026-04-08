@@ -1026,6 +1026,10 @@
             applyFilters();
         }
 
+        // ============================================================
+        // Chunked Upload: pecah file base64 menjadi potongan kecil
+        // agar tidak melebihi batas payload Google Apps Script
+        // ============================================================
         async function uploadInvoice(event, nama, index) {
             const fileInput = document.getElementById(`file_${index}`);
             const file = fileInput.files[0];
@@ -1034,61 +1038,113 @@
                 alert('Silakan pilih file terlebih dahulu');
                 return;
             }
+
+            // Batasi ukuran file maksimal 10MB
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Ukuran file terlalu besar! Maksimal 10MB.');
+                return;
+            }
         
             const sheetName = document.getElementById('sheetSelect').value;
-            
-            // Sekarang event.target akan selalu valid
             const button = event.target || event.srcElement; 
             button.disabled = true;
-            button.textContent = '⏳ Mengupload...';
+            button.textContent = '⏳ Membaca file...';
         
             const reader = new FileReader();
             
-            // Gunakan try-catch DI DALAM callback asinkron untuk menangkap error network/GAS
             reader.onload = async function(e) {
                 try {
                     const base64Data = e.target.result.split(',')[1];
-                    
-                    const response = await fetch(GAS_URL, {
-                        method: 'POST',
-                        redirect: 'follow',
-                        headers: {
-                            'Content-Type': 'text/plain;charset=utf-8',
-                        },
-                        body: JSON.stringify({
-                            action: 'uploadInvoice',
-                            sheetName: sheetName,
-                            nama: nama,
-                            fileName: file.name,
-                            fileData: base64Data,
-                            mimeType: file.type,
-                            namaCol: currentConfig.namaCol
-                        })
-                    });
-        
-                    if (!response.ok) {
-                        throw new Error(`Koneksi Gagal! Status: ${response.status}`);
-                    }
-        
-                    const result = await response.json();
-                    
-                    if (result.error) {
-                        throw new Error(result.error);
+
+                    // Ukuran chunk: 150KB base64 (~112KB data asli)
+                    // Aman untuk payload GAS yang max ~200KB per request
+                    const CHUNK_SIZE = 150 * 1024; // 150KB per chunk
+                    const totalChunks = Math.ceil(base64Data.length / CHUNK_SIZE);
+
+                    // Generate unique upload ID
+                    const uploadId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+
+                    if (totalChunks === 1) {
+                        // File kecil: kirim langsung tanpa chunking
+                        button.textContent = '⏳ Mengupload...';
+                        const response = await fetch(GAS_URL, {
+                            method: 'POST',
+                            redirect: 'follow',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({
+                                action: 'uploadInvoice',
+                                sheetName: sheetName,
+                                nama: nama,
+                                fileName: file.name,
+                                fileData: base64Data,
+                                mimeType: file.type,
+                                namaCol: currentConfig.namaCol
+                            })
+                        });
+                        if (!response.ok) throw new Error(`Koneksi gagal! Status: ${response.status}`);
+                        const result = await response.json();
+                        if (result.error) throw new Error(result.error);
+
+                    } else {
+                        // File besar: kirim per chunk
+                        for (let i = 0; i < totalChunks; i++) {
+                            const chunkStart = i * CHUNK_SIZE;
+                            const chunkEnd = Math.min(chunkStart + CHUNK_SIZE, base64Data.length);
+                            const chunkData = base64Data.substring(chunkStart, chunkEnd);
+
+                            button.textContent = `⏳ Upload ${i + 1}/${totalChunks}...`;
+
+                            const chunkResponse = await fetch(GAS_URL, {
+                                method: 'POST',
+                                redirect: 'follow',
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify({
+                                    action: 'uploadChunk',
+                                    uploadId: uploadId,
+                                    chunkIndex: i,
+                                    totalChunks: totalChunks,
+                                    chunkData: chunkData
+                                })
+                            });
+                            if (!chunkResponse.ok) throw new Error(`Gagal mengirim chunk ${i + 1}. Status: ${chunkResponse.status}`);
+                            const chunkResult = await chunkResponse.json();
+                            if (chunkResult.error) throw new Error(`Chunk ${i + 1} error: ${chunkResult.error}`);
+                        }
+
+                        // Semua chunk terkirim, minta GAS untuk assemble
+                        button.textContent = '⏳ Memproses file...';
+                        const assembleResponse = await fetch(GAS_URL, {
+                            method: 'POST',
+                            redirect: 'follow',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({
+                                action: 'assembleChunks',
+                                uploadId: uploadId,
+                                totalChunks: totalChunks,
+                                sheetName: sheetName,
+                                nama: nama,
+                                fileName: file.name,
+                                mimeType: file.type,
+                                namaCol: currentConfig.namaCol
+                            })
+                        });
+                        if (!assembleResponse.ok) throw new Error(`Gagal memproses file. Status: ${assembleResponse.status}`);
+                        const assembleResult = await assembleResponse.json();
+                        if (assembleResult.error) throw new Error(assembleResult.error);
                     }
         
                     fileInput.value = '';
+                    button.textContent = '✅ Berhasil!';
                     await loadData(sheetName); 
                     alert('File berhasil diupload!');
                 } catch (error) {
                     console.error('Upload error:', error);
-                    // Error kini akan ditangkap secara elegan di UI
-                    alert('Gagal mengupload file: ' + error.message + '\nPastikan ukuran PDF tidak terlalu besar.');
+                    alert('Gagal mengupload file: ' + error.message);
                     button.disabled = false;
                     button.textContent = '📤 Kirim';
                 }
             };
         
-            // Antisipasi jika browser gagal membaca file dari memori lokal
             reader.onerror = function() {
                 alert('Gagal membaca file dari perangkat Anda.');
                 button.disabled = false;
